@@ -1,9 +1,10 @@
-use std::{ cell::RefCell, rc::Rc};
-static G: f32 = 6.6743E-11; // distance in meters and mass in kg
-static box_size: f32 = 2.0;
 use std::mem;
+use std::{cell::RefCell, rc::Rc};
+static G: f32 = 1.0;//6.6743E-11; // distance in meters and mass in kg
+static BOX_SIZE: f32 = 2.0;
+static THETA: f32 = 0.5;
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 struct Vector {
     x: f32,
     y: f32,
@@ -26,8 +27,14 @@ impl Vector {
             y: self.y / mag,
         }
     }
+    fn get_distance(&self, other_position: &Vector) -> f32 {
+        // distance formula
+        let distance = ((f32::powi(other_position.y - self.y, 2)) + (f32::powi(other_position.x - self.x, 2)))
+            .sqrt();
+        distance
+    }
 }
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 struct Particle {
     position: Vector,
     velocity: Vector,
@@ -35,18 +42,11 @@ struct Particle {
 }
 
 impl Particle {
-    fn get_distance(&self, other_position: &Vector) -> f32 {
-        // distance formula
-        ((f32::powi(other_position.y - self.position.y, 2))
-            + (f32::powi(other_position.x - self.position.x, 2)))
-        .sqrt()
-    }
-
-    fn apply_force(&mut self, other: &Particle) {
+    fn apply_force(&mut self, other: &Particle, delta_time: &f32) {
         // first calculate the force of gravity that will other particle applies on this
         // particle
-        let g_force =
-            (G * self.mass * other.mass) / (f32::powi(self.get_distance(&other.position), 2));
+        let g_force = (G * self.mass * other.mass)
+            / (f32::powi(self.position.get_distance(&other.position), 2));
         //create force vector
         let force_vector = Vector {
             x: other.position.x - self.position.x,
@@ -54,15 +54,14 @@ impl Particle {
         }
         .normialize()
         .multiple(&g_force);
-
         //apply the force vector onto the velocity vector
-        self.velocity.x = self.velocity.x + force_vector.x;
-        self.velocity.y = self.velocity.y + force_vector.y;
+        self.velocity.x = self.velocity.x + force_vector.x * delta_time;
+        self.velocity.y = self.velocity.y + force_vector.y * delta_time;
     }
 
     fn update_position(&mut self, delta_time: &f32) {
-        self.position.x = self.velocity.x * delta_time;
-        self.position.y = self.velocity.y * delta_time;
+        self.position.x = self.position.x + self.velocity.x * delta_time;
+        self.position.y = self.position.y + self.velocity.y * delta_time;
     }
 }
 
@@ -80,7 +79,7 @@ impl Tree {
     fn new() -> Tree {
         Tree {
             nodes: vec![],
-            center: Vector{x:0.0, y:0.0},
+            center: Vector { x: 0.0, y: 0.0 },
             particle: None,
             avg_mass: 0.0,
         }
@@ -95,24 +94,24 @@ impl Tree {
             None => {
                 self.particle = Some(node);
                 return;
-            },
+            }
             Some(particle) => {
                 if particle.position.x >= self.center.x && particle.position.y >= self.center.y {
                     self.build_new_trees();
                     let old_particle = mem::replace(&mut self.particle, None).unwrap();
                     self.nodes[0].borrow_mut().append_node(old_particle);
-                }
-                else if particle.position.x >= self.center.x && particle.position.y < self.center.y {
+                } else if particle.position.x >= self.center.x
+                    && particle.position.y < self.center.y
+                {
                     self.build_new_trees();
                     let old_particle = mem::replace(&mut self.particle, None).unwrap();
                     self.nodes[1].borrow_mut().append_node(old_particle);
-                }
-                else if particle.position.x < self.center.x && particle.position.y < self.center.y {
+                } else if particle.position.x < self.center.x && particle.position.y < self.center.y
+                {
                     self.build_new_trees();
                     let old_particle = mem::replace(&mut self.particle, None).unwrap();
                     self.nodes[2].borrow_mut().append_node(old_particle);
-                }
-                else {
+                } else {
                     self.build_new_trees();
                     let old_particle = mem::replace(&mut self.particle, None).unwrap();
                     self.nodes[3].borrow_mut().append_node(old_particle);
@@ -122,18 +121,15 @@ impl Tree {
         //figure out which quad to throw it in
         if node.position.x >= self.center.x && node.position.y >= self.center.y {
             self.nodes[0].borrow_mut().append_node(node);
-        }
-        else if node.position.x >= self.center.x && node.position.y < self.center.y {
+        } else if node.position.x >= self.center.x && node.position.y < self.center.y {
             self.nodes[1].borrow_mut().append_node(node);
-        }
-        else if node.position.x < self.center.x && node.position.y < self.center.y {
+        } else if node.position.x < self.center.x && node.position.y < self.center.y {
             self.nodes[2].borrow_mut().append_node(node);
-        }
-        else {
+        } else {
             self.nodes[3].borrow_mut().append_node(node);
         }
     }
-    
+
     // internal function to get an empty tree
     fn new_tree(center: Vector) -> Rc<RefCell<Tree>> {
         Rc::new(RefCell::new(Tree {
@@ -161,7 +157,7 @@ impl Tree {
         // different quads remain the same.
         let mut center_offset = f32::abs(self.center.x / 2.0);
         if center_offset == 0.0 {
-            center_offset = box_size / 2.0;
+            center_offset = BOX_SIZE / 2.0;
         }
         // quadrant 1
         self.nodes.push(Tree::new_tree(Vector {
@@ -185,22 +181,85 @@ impl Tree {
         }));
     }
 
-    fn build_average_mass(&mut self)  -> f32{
+    fn build_average_mass(&mut self) -> f32 {
         match &self.particle {
             // average mass is just the mass of the particle
             Some(particle) => {
                 self.avg_mass = particle.mass;
                 self.avg_mass
+            }
+            None => {
+                if self.nodes.len() != 0 {
+                    self.avg_mass = self.nodes[0].borrow_mut().build_average_mass()
+                        + self.nodes[1].borrow_mut().build_average_mass()
+                        + self.nodes[2].borrow_mut().build_average_mass()
+                        + self.nodes[3].borrow_mut().build_average_mass();
+                }
+                self.avg_mass
+            }
+        }
+    }
+
+    // public facing function to update all points in the tree
+    fn update_units(&mut self, list_of_points: &mut Vec<Particle>, delta_time: &f32) {
+        for point in list_of_points {
+            match &self.particle {
+                // early return since this is only one object in the tree
+                // we being safe out here
+                Some(_) => {
+                    return;
+                }
+                None => {
+                    self.nodes[0].borrow_mut().get_acc_vector(point, delta_time);
+                    self.nodes[1].borrow_mut().get_acc_vector(point, delta_time);
+                    self.nodes[2].borrow_mut().get_acc_vector(point, delta_time);
+                    self.nodes[3].borrow_mut().get_acc_vector(point, delta_time);
+                }
+            }
+            point.update_position(&delta_time);
+        }
+    }
+
+    // private recursive function to return get the acceleration vector to apply
+    // to each node
+    fn get_acc_vector(&mut self, point: &mut Particle, delta_time: &f32) {
+        // early return if the quad has zero mass. this means it is empty
+        if self.avg_mass == 0.0 {
+            return;
+        }
+        // check if the distance is far enough away to just use the average mass and center
+        // of the quad:  s/d > theta, s is the static width of the tree and distance is between
+        // the center and of the quad
+        if BOX_SIZE / self.center.get_distance(&point.position) > THETA {
+            if point.position.x != self.center.x && point.position.y != self.center.y {
+                point.apply_force(&Particle {
+                    mass: self.avg_mass,
+                    position: Vector {
+                        x: self.center.x,
+                        y: self.center.y,
+                    },
+                    velocity: Vector { x: 0.0, y: 0.0 },
+                }, delta_time);
+            }
+            //early return as this the force has been applied
+            return;
+        }
+        match &self.particle {
+            // particle exists in this node so just apply that
+            Some(particle) => {
+                // dont apply the force if the point is in the same spot
+                if point.position.x != particle.position.x && point.position.y != particle.position.y {
+                    point.apply_force(particle, delta_time)
+                }
             },
             None => {
                 if self.nodes.len() != 0 {
-                    self.avg_mass = self.nodes[0].borrow_mut().build_average_mass() + 
-                    self.nodes[1].borrow_mut().build_average_mass() +
-                    self.nodes[2].borrow_mut().build_average_mass() +
-                    self.nodes[3].borrow_mut().build_average_mass();
+                    self.nodes[0].borrow_mut().get_acc_vector(point, delta_time);
+                    self.nodes[1].borrow_mut().get_acc_vector(point, delta_time);
+                    self.nodes[2].borrow_mut().get_acc_vector(point, delta_time);
+                    self.nodes[3].borrow_mut().get_acc_vector(point, delta_time);
                 }
-                self.avg_mass
-            },
+            }
         }
     }
 }
@@ -228,22 +287,33 @@ fn main() {
         mass: 1.0,
     };
 
-    println!("get distance {:#?}", part1.get_distance(&part2.position));
+    let mut list_of_points = vec![part1, part2];
+
+    println!(
+        "get distance {:#?}",
+        part1.position.get_distance(&part2.position)
+    );
     println!("test this pre-applied force {:#?}", part1);
-    part1.apply_force(&part2);
+    part1.apply_force(&part2, &1.0);
     println!("test this post-applied force {:#?}", part1);
 
     println!("create THE tree");
     let mut tree = Tree::new();
-    
-    // build the tree
+    // add to the tree
     tree.append_node(part1);
-    //println!("added one item {:#?}", tree);
     tree.append_node(part2);
-    println!("added second item {:#?}", tree);
-    
+
     // calculate the average mass for each node
     tree.build_average_mass();
-    println!("calculated mass {:#?}", tree);
+    //println!("calculated mass {:#?}", tree);
+
+    // big scary O(nlog(n)) apply forces calc time.
+    // Traverse the tree and accumulate force vectors
+    // deeper in the tree until s/d > theta. S being static width
+    // of the region and d is the distance between the center of the
+    // quad and the region
+    println!("pre update{:#?}", list_of_points);
+    tree.update_units(&mut list_of_points, &1.0);
+    println!("post update{:#?}", list_of_points);
 
 }
