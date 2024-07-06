@@ -1,6 +1,6 @@
 use std::mem;
 use std::{cell::RefCell, rc::Rc};
-static G: f32 = 1.0;//6.6743E-11; // distance in meters and mass in kg
+static G: f32 = 6.6743E-11; // distance in meters and mass in kg
 static BOX_SIZE: f32 = 2.0;
 static THETA: f32 = 0.5;
 
@@ -89,32 +89,32 @@ impl Tree {
     // the tree struct to build and manage it. While appending if a particle
     // doesn't exist in the this tree object then add it. If it does exist
     // then split this tree in four and append the node to the tree is fits in
-    pub fn append_node(&mut self, node: Particle) {
+    pub fn append_node(&mut self, node: &Particle) {
         match &self.particle {
             None => {
-                self.particle = Some(node);
+                self.particle = Some(*node);
                 return;
             }
             Some(particle) => {
                 if particle.position.x >= self.center.x && particle.position.y >= self.center.y {
                     self.build_new_trees();
                     let old_particle = mem::replace(&mut self.particle, None).unwrap();
-                    self.nodes[0].borrow_mut().append_node(old_particle);
+                    self.nodes[0].borrow_mut().append_node(&old_particle);
                 } else if particle.position.x >= self.center.x
                     && particle.position.y < self.center.y
                 {
                     self.build_new_trees();
                     let old_particle = mem::replace(&mut self.particle, None).unwrap();
-                    self.nodes[1].borrow_mut().append_node(old_particle);
+                    self.nodes[1].borrow_mut().append_node(&old_particle);
                 } else if particle.position.x < self.center.x && particle.position.y < self.center.y
                 {
                     self.build_new_trees();
                     let old_particle = mem::replace(&mut self.particle, None).unwrap();
-                    self.nodes[2].borrow_mut().append_node(old_particle);
+                    self.nodes[2].borrow_mut().append_node(&old_particle);
                 } else {
                     self.build_new_trees();
                     let old_particle = mem::replace(&mut self.particle, None).unwrap();
-                    self.nodes[3].borrow_mut().append_node(old_particle);
+                    self.nodes[3].borrow_mut().append_node(&old_particle);
                 }
             }
         }
@@ -357,7 +357,7 @@ mod tests {
         }
         assert_eq!(tree.nodes.len(), 0);
 
-        tree.append_node(part1);
+        tree.append_node(&part1);
         //check for node in base position
         assert_eq!(tree.avg_mass, 0.0);
         match tree.particle {
@@ -366,7 +366,7 @@ mod tests {
         }
         assert_eq!(tree.nodes.len(), 0);
 
-        tree.append_node(part2);
+        tree.append_node(&part2);
         //check for BOTH nodes to be moved into child nodes and out of base
         //check for node in base position
         assert_eq!(tree.avg_mass, 0.0);
@@ -410,8 +410,8 @@ mod tests {
         };
 
         let mut tree = Tree::new();
-        tree.append_node(part1);
-        tree.append_node(part2);
+        tree.append_node(&part1);
+        tree.append_node(&part2);
 
         //should still be zero
         assert_eq!(tree.avg_mass, 0.0);
@@ -444,8 +444,8 @@ mod tests {
         };
 
         let mut tree = Tree::new();
-        tree.append_node(part1);
-        tree.append_node(part2);
+        tree.append_node(&part1);
+        tree.append_node(&part2);
         tree.build_average_mass();
 
         // part1 and part2 are being copied here 

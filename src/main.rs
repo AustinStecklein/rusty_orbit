@@ -1,7 +1,20 @@
 
 
 pub mod tree;
+fn update_all_positions(mut list_of_points: Vec<tree::Particle>) {
+    let mut tree = tree::Tree::new();
+    // add to the tree
+    for point in &list_of_points {
+        tree.append_node(&point);
+    }
 
+    // calculate the average mass for each node
+    tree.build_average_mass();
+
+    // big scary O(nlog(n)) apply forces calc time.
+    // Traverse the tree and accumulate force vectors
+    tree.update_units(&mut list_of_points, &1.0);
+}
 fn main() {
     let vec1 = tree::Vector { x: 1.0, y: 1.0 };
     let vec2 = tree::Vector { x: 1.0, y: 1.0 };
@@ -25,8 +38,8 @@ fn main() {
     println!("create THE tree");
     let mut tree = tree::Tree::new();
     // add to the tree
-    tree.append_node(part1);
-    tree.append_node(part2);
+    tree.append_node(&part1);
+    tree.append_node(&part2);
 
     // calculate the average mass for each node
     tree.build_average_mass();
@@ -34,8 +47,6 @@ fn main() {
 
     // big scary O(nlog(n)) apply forces calc time.
     // Traverse the tree and accumulate force vectors
-    println!("pre update{:#?}", list_of_points);
     tree.update_units(&mut list_of_points, &1.0);
-    println!("post update{:#?}", list_of_points);
 
 }
