@@ -1,4 +1,14 @@
 use std::time::Instant;
+use vulkano::VulkanLibrary;
+use vulkano::instance::{Instance, InstanceCreateInfo};
+use vulkano::swapchain::Surface;
+use winit::{
+    event::{Event, WindowEvent},
+    event_loop::{EventLoop, ControlFlow},
+    window::WindowBuilder,
+};
+use std::sync::Arc;
+
 pub mod tree;
 
 fn update_all_positions(list_of_points: &mut Vec<tree::Particle>, delta_time: &f32) {
@@ -40,16 +50,45 @@ fn main() {
     println!("create THE tree");
     let mut i = 0;
     let mut current_time = Instant::now();
-    loop {
-        // currently the delta time in each loop is so small that the float is being rounded 
-        // down to zero
-        let delta_time = current_time - Instant::now();
-        current_time = Instant::now();
-        update_all_positions(&mut list_of_points, &delta_time.as_secs_f32());
-        if i % 10000 == 0 {
-            println!("in loop number {}", i);
-            println!("vector {:#?}", list_of_points[0]);
+    // un comment for tree stuff
+    // loop {
+    //     // currently the delta time in each loop is so small that the float is being rounded 
+    //     // down to zero
+    //     let delta_time = current_time - Instant::now();
+    //     current_time = Instant::now();
+    //     update_all_positions(&mut list_of_points, &delta_time.as_secs_f32());
+    //     if i % 10000 == 0 {
+    //         println!("in loop number {}", i);
+    //         println!("vector {:#?}", list_of_points[0]);
+    //     }
+    //     i += 1;
+    // }
+    
+    let event_loop = EventLoop::new();
+    let library = VulkanLibrary::new().expect("no local Vulkan library/DLL");
+    let required_extensions = Surface::required_extensions(&event_loop);
+    let instance = Instance::new(
+        library,
+        InstanceCreateInfo {
+            enabled_extensions: required_extensions,
+            ..Default::default()
+        },
+    ).expect("failed to create instance");
+
+
+    let window = Arc::new(WindowBuilder::new().build(&event_loop).unwrap());
+
+    let surface = Surface::from_window(instance.clone(), window.clone());
+    event_loop.run(|event, _, control_flow| {
+        match event {
+            Event::WindowEvent {
+                event: WindowEvent::CloseRequested,
+                ..
+            } => {
+                *control_flow = ControlFlow::Exit;
+            },
+            _ => ()
         }
-        i += 1;
-    }
+    });
+
 }
