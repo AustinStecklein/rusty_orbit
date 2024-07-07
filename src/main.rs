@@ -2,6 +2,13 @@ use macroquad::prelude::*;
 use std::time::Instant;
 pub mod tree;
 
+// current problem
+// the tree and the display are in a stablish state yet collisions
+// are not handled well. Currently this is "handled" by capping
+// the max gravitational force that can be applied. This isn't
+// my end goal with this project as I would like to see objects
+// "sick" together due to gravity.
+
 fn update_all_positions(list_of_points: &mut Vec<tree::Particle>, delta_time: &f32) {
     let mut tree = tree::Tree::new();
     // add to the tree. A copy will happen here which is required.
@@ -22,22 +29,22 @@ fn update_all_positions(list_of_points: &mut Vec<tree::Particle>, delta_time: &f
 #[macroquad::main("Rusty orbit")]
 async fn main() {
     let vec1 = tree::Vector { x: 100.0, y: 100.0 };
-    let vec2 = tree::Vector { x: 1.0, y: 1.0 };
+    let vec2 = tree::Vector { x: 0.0, y: 10.0 };
     let part1 = tree::Particle {
         position: vec1,
         velocity: vec2,
-        mass: 10000.0,
+        mass: 1000.0,
     };
 
     let vec3 = tree::Vector {
         x: -100.0,
         y: -100.0,
     };
-    let vec4 = tree::Vector { x: -1.0, y: -1.0 };
+    let vec4 = tree::Vector { x: 0.0, y: -10.0 };
     let part2 = tree::Particle {
         position: vec3,
         velocity: vec4,
-        mass: 10000.0,
+        mass: 1000.0,
     };
 
     // part1 and part2 are being copied here

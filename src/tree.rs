@@ -3,6 +3,7 @@ use std::{cell::RefCell, rc::Rc};
 static G: f32 = 1.0; //6.6743E-11; // distance in meters and mass in kg
 static BOX_SIZE: f32 = 1000.0;
 static THETA: f32 = 0.5;
+static MAX_FORCE: f32 = 50.0;
 
 #[derive(Debug, Copy, Clone)]
 pub struct Vector {
@@ -48,6 +49,9 @@ impl Particle {
         // particle
         let g_force = (G * self.mass * other.mass)
             / (f32::powi(self.position.get_distance(&other.position), 2));
+        if g_force > MAX_FORCE {
+            return;
+        }
         //create force vector
         let force_vector = Vector {
             x: other.position.x - self.position.x,
@@ -61,6 +65,7 @@ impl Particle {
     }
 
     fn update_position(&mut self, delta_time: &f32) {
+        // currently no collision checking
         self.position.x = self.position.x + self.velocity.x * delta_time;
         self.position.y = self.position.y + self.velocity.y * delta_time;
     }
@@ -311,12 +316,12 @@ mod tests {
     #[test]
     fn particle_apply_force() {
         let mut part1 = Particle {
-            position: Vector { x: 1.0, y: 1.0 },
+            position: Vector { x: 50.0, y: 50.0 },
             velocity: Vector { x: 1.0, y: 1.0 },
             mass: 50.0,
         };
         let part2 = Particle {
-            position: Vector { x: -1.0, y: -1.0 },
+            position: Vector { x: -50.0, y: -50.0 },
             velocity: Vector { x: 1.0, y: 1.0 },
             mass: 50.0,
         };
