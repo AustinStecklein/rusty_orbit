@@ -107,8 +107,8 @@ impl Tree {
                     self.build_new_trees();
                     let old_particle = mem::replace(&mut self.particle, None).unwrap();
                     self.nodes[0].borrow_mut().append_node(&old_particle);
-                } else if particle.position.x >= self.center.x
-                    && particle.position.y < self.center.y
+                } else if particle.position.x < self.center.x
+                    && particle.position.y >= self.center.y
                 {
                     self.build_new_trees();
                     let old_particle = mem::replace(&mut self.particle, None).unwrap();
@@ -128,7 +128,7 @@ impl Tree {
         //figure out which quad to throw it in
         if node.position.x >= self.center.x && node.position.y >= self.center.y {
             self.nodes[0].borrow_mut().append_node(node);
-        } else if node.position.x >= self.center.x && node.position.y < self.center.y {
+        } else if node.position.x < self.center.x && node.position.y >= self.center.y {
             self.nodes[1].borrow_mut().append_node(node);
         } else if node.position.x < self.center.x && node.position.y < self.center.y {
             self.nodes[2].borrow_mut().append_node(node);
