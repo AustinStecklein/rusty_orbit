@@ -1,10 +1,11 @@
-
-
 pub mod tree;
-fn update_all_positions(mut list_of_points: Vec<tree::Particle>) {
+
+fn update_all_positions(list_of_points: &mut Vec<tree::Particle>) {
     let mut tree = tree::Tree::new();
-    // add to the tree
-    for point in &list_of_points {
+    // add to the tree. A copy will happen here which is required.
+    // The tree needs to be constant as the list of points vector 
+    // is being updated
+    for point in &*list_of_points {
         tree.append_node(&point);
     }
 
@@ -13,7 +14,7 @@ fn update_all_positions(mut list_of_points: Vec<tree::Particle>) {
 
     // big scary O(nlog(n)) apply forces calc time.
     // Traverse the tree and accumulate force vectors
-    tree.update_units(&mut list_of_points, &1.0);
+    tree.update_units(list_of_points, &1.0);
 }
 fn main() {
     let vec1 = tree::Vector { x: 1.0, y: 1.0 };
@@ -36,17 +37,14 @@ fn main() {
     let mut list_of_points = vec![part1, part2];
 
     println!("create THE tree");
-    let mut tree = tree::Tree::new();
-    // add to the tree
-    tree.append_node(&part1);
-    tree.append_node(&part2);
+    let mut i = 0;
+    loop {
+        update_all_positions(&mut list_of_points);
+        if i %10000 == 0 {
+            println!("in loop number {}", i);
+        }
+        i += 1;
+    }
 
-    // calculate the average mass for each node
-    tree.build_average_mass();
-    //println!("calculated mass {:#?}", tree);
-
-    // big scary O(nlog(n)) apply forces calc time.
-    // Traverse the tree and accumulate force vectors
-    tree.update_units(&mut list_of_points, &1.0);
 
 }
