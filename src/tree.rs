@@ -56,8 +56,8 @@ impl Particle {
         .normialize()
         .multiple(&g_force);
         //apply the force vector onto the velocity vector
-        self.velocity.x = self.velocity.x - force_vector.x * delta_time;
-        self.velocity.y = self.velocity.y - force_vector.y * delta_time;
+        self.velocity.x = self.velocity.x + force_vector.x * delta_time;
+        self.velocity.y = self.velocity.y + force_vector.y * delta_time;
     }
 
     fn update_position(&mut self, delta_time: &f32) {
@@ -236,7 +236,7 @@ impl Tree {
         // check if the distance is far enough away to just use the average mass and center
         // of the quad:  s/d > theta, s is the static width of the tree and distance is between
         // the center and of the quad
-        if BOX_SIZE / self.center.get_distance(&point.position) > THETA {
+        if BOX_SIZE / self.center.get_distance(&point.position) < THETA {
             if point.position.x != self.center.x && point.position.y != self.center.y {
                 point.apply_force(
                     &Particle {
@@ -256,9 +256,9 @@ impl Tree {
         match &self.particle {
             // particle exists in this node so just apply that
             Some(particle) => {
-                // dont apply the force if the point is in the same spot
+                // don't apply the force if the point is in the same spot
                 if point.position.x != particle.position.x
-                    && point.position.y != particle.position.y
+                    || point.position.y != particle.position.y
                 {
                     point.apply_force(particle, delta_time)
                 }
