@@ -1,7 +1,7 @@
 use std::mem;
 use std::{cell::RefCell, rc::Rc};
-static G: f32 = 6.6743E-11; // distance in meters and mass in kg
-static BOX_SIZE: f32 = 2.0;
+static G: f32 = 1.0;//6.6743E-11; // distance in meters and mass in kg
+static BOX_SIZE: f32 = 1000.0;
 static THETA: f32 = 0.5;
 
 #[derive(Debug, Copy, Clone)]
@@ -56,8 +56,8 @@ impl Particle {
         .normialize()
         .multiple(&g_force);
         //apply the force vector onto the velocity vector
-        self.velocity.x = self.velocity.x + force_vector.x * delta_time;
-        self.velocity.y = self.velocity.y + force_vector.y * delta_time;
+        self.velocity.x = self.velocity.x - force_vector.x * delta_time;
+        self.velocity.y = self.velocity.y - force_vector.y * delta_time;
     }
 
     fn update_position(&mut self, delta_time: &f32) {
