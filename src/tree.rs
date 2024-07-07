@@ -29,8 +29,9 @@ impl Vector {
     }
     pub fn get_distance(&self, other_position: &Vector) -> f32 {
         // distance formula
-        let distance = ((f32::powi(other_position.y - self.y, 2)) + (f32::powi(other_position.x - self.x, 2)))
-            .sqrt();
+        let distance = ((f32::powi(other_position.y - self.y, 2))
+            + (f32::powi(other_position.x - self.x, 2)))
+        .sqrt();
         distance
     }
 }
@@ -232,14 +233,17 @@ impl Tree {
         // the center and of the quad
         if BOX_SIZE / self.center.get_distance(&point.position) > THETA {
             if point.position.x != self.center.x && point.position.y != self.center.y {
-                point.apply_force(&Particle {
-                    mass: self.avg_mass,
-                    position: Vector {
-                        x: self.center.x,
-                        y: self.center.y,
+                point.apply_force(
+                    &Particle {
+                        mass: self.avg_mass,
+                        position: Vector {
+                            x: self.center.x,
+                            y: self.center.y,
+                        },
+                        velocity: Vector { x: 0.0, y: 0.0 },
                     },
-                    velocity: Vector { x: 0.0, y: 0.0 },
-                }, delta_time);
+                    delta_time,
+                );
             }
             //early return as this the force has been applied
             return;
@@ -248,10 +252,12 @@ impl Tree {
             // particle exists in this node so just apply that
             Some(particle) => {
                 // dont apply the force if the point is in the same spot
-                if point.position.x != particle.position.x && point.position.y != particle.position.y {
+                if point.position.x != particle.position.x
+                    && point.position.y != particle.position.y
+                {
                     point.apply_force(particle, delta_time)
                 }
-            },
+            }
             None => {
                 if self.nodes.len() != 0 {
                     self.nodes[0].borrow_mut().get_acc_vector(point, delta_time);
@@ -276,14 +282,14 @@ mod tests {
         let vec2 = vec1.multiple(&2.0);
         assert_eq!(vec2.x, 2.0);
         assert_eq!(vec2.y, 2.0);
-    } 
+    }
 
     #[test]
     fn vector_normialize() {
         let vec1 = Vector { x: 1.0, y: 1.0 };
         assert_eq!(vec1.x, 1.0);
         assert_eq!(vec1.y, 1.0);
-        
+
         let vec2 = vec1.normialize();
         assert_eq!(vec2.x, 0.70710677);
         assert_eq!(vec2.y, 0.70710677);
@@ -300,20 +306,20 @@ mod tests {
 
     #[test]
     fn particle_apply_force() {
-        let mut  part1 = Particle {
-            position:  Vector { x: 1.0, y: 1.0 },
-            velocity:  Vector { x: 1.0, y: 1.0 },
+        let mut part1 = Particle {
+            position: Vector { x: 1.0, y: 1.0 },
+            velocity: Vector { x: 1.0, y: 1.0 },
             mass: 50.0,
         };
         let part2 = Particle {
-            position:  Vector { x: -1.0, y: -1.0 },
-            velocity:  Vector { x: 1.0, y: 1.0 },
+            position: Vector { x: -1.0, y: -1.0 },
+            velocity: Vector { x: 1.0, y: 1.0 },
             mass: 50.0,
         };
 
         // large delta time to get some moment
         part1.apply_force(&part2, &100.0);
-        
+
         // only particle 1 should have it's position change
         assert_ne!(part1.velocity.x, 1.0);
         assert_ne!(part1.velocity.y, 1.0);
@@ -323,9 +329,9 @@ mod tests {
 
     #[test]
     fn particle_update_position() {
-        let mut  part = Particle {
-            position:  Vector { x: 1.0, y: 1.0 },
-            velocity:  Vector { x: -1.0, y: -1.0 },
+        let mut part = Particle {
+            position: Vector { x: 1.0, y: 1.0 },
+            velocity: Vector { x: -1.0, y: -1.0 },
             mass: 50.0,
         };
 
@@ -337,14 +343,14 @@ mod tests {
 
     #[test]
     fn tree_append_many_nodes() {
-        let  part1 = Particle {
-            position:  Vector { x: 1.0, y: 1.0 },
-            velocity:  Vector { x: 1.0, y: 1.0 },
+        let part1 = Particle {
+            position: Vector { x: 1.0, y: 1.0 },
+            velocity: Vector { x: 1.0, y: 1.0 },
             mass: 50.0,
         };
         let part2 = Particle {
-            position:  Vector { x: -1.0, y: -1.0 },
-            velocity:  Vector { x: 1.0, y: 1.0 },
+            position: Vector { x: -1.0, y: -1.0 },
+            velocity: Vector { x: 1.0, y: 1.0 },
             mass: 50.0,
         };
 
@@ -353,7 +359,7 @@ mod tests {
         assert_eq!(tree.avg_mass, 0.0);
         match tree.particle {
             None => assert!(true),
-            Some(_) => assert!(false)
+            Some(_) => assert!(false),
         }
         assert_eq!(tree.nodes.len(), 0);
 
@@ -362,7 +368,7 @@ mod tests {
         assert_eq!(tree.avg_mass, 0.0);
         match tree.particle {
             None => assert!(false),
-            Some(_) => assert!(true)
+            Some(_) => assert!(true),
         }
         assert_eq!(tree.nodes.len(), 0);
 
@@ -372,40 +378,39 @@ mod tests {
         assert_eq!(tree.avg_mass, 0.0);
         match tree.particle {
             None => assert!(true),
-            Some(_) => assert!(false)
+            Some(_) => assert!(false),
         }
 
         //items should only be in first and third quad
         match tree.nodes[0].borrow_mut().particle {
             None => assert!(false),
-            Some(_) => assert!(true)
+            Some(_) => assert!(true),
         }
         match tree.nodes[1].borrow_mut().particle {
             None => assert!(true),
-            Some(_) => assert!(false)
+            Some(_) => assert!(false),
         }
         match tree.nodes[2].borrow_mut().particle {
             None => assert!(false),
-            Some(_) => assert!(true)
+            Some(_) => assert!(true),
         }
         match tree.nodes[3].borrow_mut().particle {
             None => assert!(true),
-            Some(_) => assert!(false)
+            Some(_) => assert!(false),
         }
         assert_eq!(tree.nodes.len(), 4);
-
     }
 
     #[test]
     fn tree_build_average_mass() {
-        let  part1 = Particle {
-            position:  Vector { x: 1.0, y: 1.0 },
-            velocity:  Vector { x: 1.0, y: 1.0 },
+        let part1 = Particle {
+            position: Vector { x: 1.0, y: 1.0 },
+            velocity: Vector { x: 1.0, y: 1.0 },
             mass: 50.0,
         };
         let part2 = Particle {
-            position:  Vector { x: -1.0, y: -1.0 },
-            velocity:  Vector { x: 1.0, y: 1.0 },
+            position: Vector { x: -1.0, y: -1.0 },
+            velocity: Vector { x: 1.0, y: 1.0 },
             mass: 100.0,
         };
 
@@ -426,20 +431,18 @@ mod tests {
         //third quad should have a mass of 100.0
         assert_eq!(tree.nodes[2].borrow_mut().avg_mass, 100.0);
         assert_eq!(tree.nodes[3].borrow_mut().avg_mass, 0.0);
-
-
     }
 
     #[test]
     fn tree_update_units() {
-        let  part1 = Particle {
-            position:  Vector { x: 1.0, y: 1.0 },
-            velocity:  Vector { x: 1.0, y: 1.0 },
+        let part1 = Particle {
+            position: Vector { x: 1.0, y: 1.0 },
+            velocity: Vector { x: 1.0, y: 1.0 },
             mass: 50.0,
         };
         let part2 = Particle {
-            position:  Vector { x: -1.0, y: -1.0 },
-            velocity:  Vector { x: 1.0, y: 1.0 },
+            position: Vector { x: -1.0, y: -1.0 },
+            velocity: Vector { x: 1.0, y: 1.0 },
             mass: 100.0,
         };
 
@@ -448,34 +451,28 @@ mod tests {
         tree.append_node(&part2);
         tree.build_average_mass();
 
-        // part1 and part2 are being copied here 
+        // part1 and part2 are being copied here
         let mut list_of_points = vec![part1, part2];
 
         // positions must change from staring positions
         // after call update units
 
-        // first quad should have a position of (1, 1) 
+        // first quad should have a position of (1, 1)
         assert_eq!(list_of_points[0].position.x, 1.0);
         assert_eq!(list_of_points[0].position.y, 1.0);
 
         //third quad should have a position of (-1, -1)
         assert_eq!(list_of_points[1].position.x, -1.0);
         assert_eq!(list_of_points[1].position.y, -1.0);
-    
+
         tree.update_units(&mut list_of_points, &100.0);
-        
-        // first quad should not have a position of (1, 1) 
+
+        // first quad should not have a position of (1, 1)
         assert_ne!(list_of_points[0].position.x, 1.0);
         assert_ne!(list_of_points[0].position.y, 1.0);
 
         //third quad should not have a position of (-1, -1)
         assert_ne!(list_of_points[1].position.x, -1.0);
         assert_ne!(list_of_points[1].position.y, -1.0);
-
-
-
-
     }
-    
-     
 }
