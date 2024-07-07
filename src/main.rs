@@ -29,7 +29,10 @@ async fn main() {
         mass: 10000.0,
     };
 
-    let vec3 = tree::Vector { x: -100.0, y: -100.0 };
+    let vec3 = tree::Vector {
+        x: -100.0,
+        y: -100.0,
+    };
     let vec4 = tree::Vector { x: -1.0, y: -1.0 };
     let part2 = tree::Particle {
         position: vec3,
@@ -43,10 +46,11 @@ async fn main() {
 
     loop {
         //physics update
+        // delta time isn't working right now since it is being rounded to 0
         let delta_time = current_time - Instant::now();
         current_time = Instant::now();
         update_all_positions(&mut list_of_points, &0.01);
-        
+
         //graphics update
         clear_background(BLACK);
         for point in &list_of_points {

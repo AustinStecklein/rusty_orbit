@@ -1,6 +1,6 @@
 use std::mem;
 use std::{cell::RefCell, rc::Rc};
-static G: f32 = 1.0;//6.6743E-11; // distance in meters and mass in kg
+static G: f32 = 1.0; //6.6743E-11; // distance in meters and mass in kg
 static BOX_SIZE: f32 = 1000.0;
 static THETA: f32 = 0.5;
 
@@ -91,6 +91,12 @@ impl Tree {
     // doesn't exist in the this tree object then add it. If it does exist
     // then split this tree in four and append the node to the tree is fits in
     pub fn append_node(&mut self, node: &Particle) {
+        if f32::abs(node.position.x) > BOX_SIZE || f32::abs(node.position.y) > BOX_SIZE {
+            println!(
+                "position {}, {} is out of bounds from the tree. It will not be added",
+                node.position.x, node.position.y
+            );
+        }
         match &self.particle {
             None => {
                 self.particle = Some(*node);
@@ -191,10 +197,10 @@ impl Tree {
             }
             None => {
                 if self.nodes.len() != 0 {
-                    self.avg_mass = self.nodes[0].borrow_mut().build_average_mass()
-                        + self.nodes[1].borrow_mut().build_average_mass()
-                        + self.nodes[2].borrow_mut().build_average_mass()
-                        + self.nodes[3].borrow_mut().build_average_mass();
+                    self.avg_mass = self
+                        .nodes
+                        .iter()
+                        .fold(0.0, |sum, i| sum + i.borrow_mut().build_average_mass())
                 }
                 self.avg_mass
             }
@@ -211,10 +217,9 @@ impl Tree {
                     return;
                 }
                 None => {
-                    self.nodes[0].borrow_mut().get_acc_vector(point, delta_time);
-                    self.nodes[1].borrow_mut().get_acc_vector(point, delta_time);
-                    self.nodes[2].borrow_mut().get_acc_vector(point, delta_time);
-                    self.nodes[3].borrow_mut().get_acc_vector(point, delta_time);
+                    for node in &self.nodes {
+                        node.borrow_mut().get_acc_vector(point, delta_time)
+                    }
                 }
             }
             point.update_position(&delta_time);
@@ -260,10 +265,9 @@ impl Tree {
             }
             None => {
                 if self.nodes.len() != 0 {
-                    self.nodes[0].borrow_mut().get_acc_vector(point, delta_time);
-                    self.nodes[1].borrow_mut().get_acc_vector(point, delta_time);
-                    self.nodes[2].borrow_mut().get_acc_vector(point, delta_time);
-                    self.nodes[3].borrow_mut().get_acc_vector(point, delta_time);
+                    for node in &self.nodes {
+                        node.borrow_mut().get_acc_vector(point, delta_time)
+                    }
                 }
             }
         }
