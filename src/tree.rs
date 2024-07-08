@@ -3,7 +3,7 @@ use std::{cell::RefCell, rc::Rc};
 static G: f32 = 1.0; //6.6743E-11; // distance in meters and mass in kg
 static BOX_SIZE: f32 = 1000.0;
 static THETA: f32 = 0.5;
-static MAX_FORCE: f32 = 50.0;
+static MAX_FORCE: f32 = 100.0;
 
 #[derive(Debug, Copy, Clone)]
 pub struct Vector {
@@ -41,6 +41,7 @@ pub struct Particle {
     pub position: Vector,
     pub velocity: Vector,
     pub mass: f32,
+    pub g_vector: Vector
 }
 
 impl Particle {
@@ -49,26 +50,32 @@ impl Particle {
         // particle
         let g_force = (G * self.mass * other.mass)
             / (f32::powi(self.position.get_distance(&other.position), 2));
-        if g_force > MAX_FORCE {
-            return;
-        }
+        // if g_force > MAX_FORCE {
+        //     return;
+        // }
         //create force vector
-        let force_vector = Vector {
+        self.g_vector = Vector {
             x: other.position.x - self.position.x,
             y: other.position.y - self.position.y,
         }
         .normialize()
         .multiple(&g_force);
-        //apply the force vector onto the velocity vector
-        self.velocity.x = self.velocity.x + force_vector.x * delta_time;
-        self.velocity.y = self.velocity.y + force_vector.y * delta_time;
+
+        // self.velocity.x = self.velocity.x + force_vector.x * delta_time;
+        // self.velocity.y = self.velocity.y + force_vector.y * delta_time;
     }
 
-    fn update_position(&mut self, delta_time: &f32) {
+    pub fn update_position(&mut self, delta_time: &f32) {
         // currently no collision checking
         self.position.x = self.position.x + self.velocity.x * delta_time;
         self.position.y = self.position.y + self.velocity.y * delta_time;
     }
+
+    pub fn update_velocity(&mut self, delta_time: &f32) {
+        self.velocity.x = self.velocity.x + self.g_vector.x * delta_time;
+        self.velocity.y = self.velocity.y + self.g_vector.y * delta_time;
+    }
+
 }
 
 #[derive(Debug)]
@@ -227,7 +234,7 @@ impl Tree {
                     }
                 }
             }
-            point.update_position(&delta_time);
+            // point.update_position(&delta_time);
         }
     }
 
@@ -251,6 +258,7 @@ impl Tree {
                             y: self.center.y,
                         },
                         velocity: Vector { x: 0.0, y: 0.0 },
+                        g_vector: Vector { x: 0.0, y: 0.0 },
                     },
                     delta_time,
                 );
@@ -318,16 +326,19 @@ mod tests {
         let mut part1 = Particle {
             position: Vector { x: 50.0, y: 50.0 },
             velocity: Vector { x: 1.0, y: 1.0 },
+            g_vector: Vector { x: 0.0, y: 0.0 },
             mass: 50.0,
         };
         let part2 = Particle {
             position: Vector { x: -50.0, y: -50.0 },
             velocity: Vector { x: 1.0, y: 1.0 },
+            g_vector: Vector { x: 0.0, y: 0.0 },
             mass: 50.0,
         };
 
         // large delta time to get some moment
         part1.apply_force(&part2, &100.0);
+        part1.update_velocity(&100.0);
 
         // only particle 1 should have it's position change
         assert_ne!(part1.velocity.x, 1.0);
@@ -341,6 +352,7 @@ mod tests {
         let mut part = Particle {
             position: Vector { x: 1.0, y: 1.0 },
             velocity: Vector { x: -1.0, y: -1.0 },
+            g_vector: Vector { x: 0.0, y: 0.0 },
             mass: 50.0,
         };
 
@@ -355,11 +367,13 @@ mod tests {
         let part1 = Particle {
             position: Vector { x: 1.0, y: 1.0 },
             velocity: Vector { x: 1.0, y: 1.0 },
+            g_vector: Vector { x: 0.0, y: 0.0 },
             mass: 50.0,
         };
         let part2 = Particle {
             position: Vector { x: -1.0, y: -1.0 },
             velocity: Vector { x: 1.0, y: 1.0 },
+            g_vector: Vector { x: 0.0, y: 0.0 },
             mass: 50.0,
         };
 
@@ -415,11 +429,13 @@ mod tests {
         let part1 = Particle {
             position: Vector { x: 1.0, y: 1.0 },
             velocity: Vector { x: 1.0, y: 1.0 },
+            g_vector: Vector { x: 0.0, y: 0.0 },
             mass: 50.0,
         };
         let part2 = Particle {
             position: Vector { x: -1.0, y: -1.0 },
             velocity: Vector { x: 1.0, y: 1.0 },
+            g_vector: Vector { x: 0.0, y: 0.0 },
             mass: 100.0,
         };
 
@@ -447,11 +463,13 @@ mod tests {
         let part1 = Particle {
             position: Vector { x: 1.0, y: 1.0 },
             velocity: Vector { x: 1.0, y: 1.0 },
+            g_vector: Vector { x: 0.0, y: 0.0 },
             mass: 50.0,
         };
         let part2 = Particle {
             position: Vector { x: -1.0, y: -1.0 },
             velocity: Vector { x: 1.0, y: 1.0 },
+            g_vector: Vector { x: 0.0, y: 0.0 },
             mass: 100.0,
         };
 
@@ -475,6 +493,11 @@ mod tests {
         assert_eq!(list_of_points[1].position.y, -1.0);
 
         tree.update_units(&mut list_of_points, &100.0);
+
+        for point in &mut list_of_points {
+            point.update_velocity(&0.01);
+            point.update_position(&0.01);
+        }
 
         // first quad should not have a position of (1, 1)
         assert_ne!(list_of_points[0].position.x, 1.0);

@@ -1,5 +1,7 @@
+use std::vec;
+
 use macroquad::prelude::*;
-use std::time::Instant;
+// use std::time::Instant;
 pub mod tree;
 
 // current problem
@@ -8,6 +10,11 @@ pub mod tree;
 // the max gravitational force that can be applied. This isn't
 // my end goal with this project as I would like to see objects
 // "sick" together due to gravity.
+
+// current plan for mixing this two is that particles accumulate force
+// vectors. One being the gravitational force then collision force. (hoping to reuse
+// the tree for finding collision pairs). This should mean I don't need to 
+// cap forces as they will never get close enough to produce super large G forces
 
 fn update_all_positions(list_of_points: &mut Vec<tree::Particle>, delta_time: &f32) {
     let mut tree = tree::Tree::new();
@@ -22,40 +29,72 @@ fn update_all_positions(list_of_points: &mut Vec<tree::Particle>, delta_time: &f
     tree.build_average_mass();
 
     // big scary O(nlog(n)) apply forces calc time.
-    // Traverse the tree and accumulate force vectors
+    // Traverse the tree and accumulate force vectors of gravity
     tree.update_units(list_of_points, delta_time);
+
+    // really dump collision handler
+    let mut collision_pairs = Vec::new();
+
+    // check for collisions the long way
+    for (i, point) in list_of_points.iter().enumerate() {
+        for possible_collision in &*list_of_points{
+            // we can't collide with ourselves
+            if std::ptr::eq(point, possible_collision) {continue;}
+            // TODO fix: just checking position and not future position
+            let points_distance = point.position.get_distance(&possible_collision.position);
+            // currently not early returning for found collisions
+            if points_distance <= 40.0 {
+                collision_pairs.push(i);
+            }
+        }
+    }
+
+    //handle collisions - the dumb way
+    for index in collision_pairs {
+        list_of_points[index].velocity.x = -list_of_points[index].velocity.x;
+        list_of_points[index].velocity.y = -list_of_points[index].velocity.y;
+    }
+
+    // now update position
+    for point in list_of_points {
+        point.update_velocity(&0.01);
+        point.update_position(&0.01);
+    }
+
 }
 
 #[macroquad::main("Rusty orbit")]
 async fn main() {
     let vec1 = tree::Vector { x: 100.0, y: 100.0 };
-    let vec2 = tree::Vector { x: 0.0, y: 10.0 };
+    let vec2 = tree::Vector { x: 0.0, y: 0.0 };
     let part1 = tree::Particle {
         position: vec1,
         velocity: vec2,
         mass: 1000.0,
+        g_vector: tree::Vector { x: 0.0, y: 0.0 },
     };
 
     let vec3 = tree::Vector {
         x: -100.0,
         y: -100.0,
     };
-    let vec4 = tree::Vector { x: 0.0, y: -10.0 };
+    let vec4 = tree::Vector { x: 0.0, y: 0.0 };
     let part2 = tree::Particle {
         position: vec3,
         velocity: vec4,
         mass: 1000.0,
+        g_vector: tree::Vector { x: 0.0, y: 0.0 },
     };
 
     // part1 and part2 are being copied here
     let mut list_of_points = vec![part1, part2];
-    let mut current_time = Instant::now();
+    // let mut current_time = Instant::now();
 
     loop {
         //physics update
         // delta time isn't working right now since it is being rounded to 0
-        let delta_time = current_time - Instant::now();
-        current_time = Instant::now();
+        // let delta_time = current_time - Instant::now();
+        // current_time = Instant::now();
         update_all_positions(&mut list_of_points, &0.01);
 
         //graphics update
