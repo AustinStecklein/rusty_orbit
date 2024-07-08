@@ -48,27 +48,40 @@ impl Particle {
     pub fn apply_force(&mut self, other: &Particle, delta_time: &f32) {
         // first calculate the force of gravity that will other particle applies on this
         // particle
-        let g_force = (G * self.mass * other.mass)
-            / (f32::powi(self.position.get_distance(&other.position), 2));
+        let distance = self.position.get_distance(&other.position);
+        let mut g_force: f32 = (G * self.mass * other.mass)
+            / (f32::powi(distance, 2));
         // if g_force > MAX_FORCE {
-        //     return;
+        //     g_force = 0.0;
         // }
         //create force vector
-        self.g_vector = Vector {
+        let g_vector = Vector {
             x: other.position.x - self.position.x,
             y: other.position.y - self.position.y,
         }
         .normialize()
         .multiple(&g_force);
 
-        // self.velocity.x = self.velocity.x + force_vector.x * delta_time;
-        // self.velocity.y = self.velocity.y + force_vector.y * delta_time;
+        //second calculate the strong nuclear force or the force generated as particles want to be 
+        //separated
+        // let p_force: f32 = f32::max(0.0, 30.0 - distance) * 15.0;
+        // let p_vector = Vector {
+        //     x: other.position.x - self.position.x,
+        //     y: other.position.y - self.position.y,
+        // }
+        // .normialize()
+        // .multiple(&p_force);
+        self.g_vector.x  = self.g_vector.x + g_vector.x;// - p_vector.x;
+        self.g_vector.y  = self.g_vector.y + g_vector.y;// - p_vector.y;
+
     }
 
+
     pub fn update_position(&mut self, delta_time: &f32) {
-        // currently no collision checking
         self.position.x = self.position.x + self.velocity.x * delta_time;
         self.position.y = self.position.y + self.velocity.y * delta_time;
+        self.g_vector.x = 0.0;
+        self.g_vector.y = 0.0;
     }
 
     pub fn update_velocity(&mut self, delta_time: &f32) {
@@ -104,36 +117,40 @@ impl Tree {
     // then split this tree in four and append the node to the tree is fits in
     pub fn append_node(&mut self, node: &Particle) {
         if f32::abs(node.position.x) > BOX_SIZE || f32::abs(node.position.y) > BOX_SIZE {
-            println!(
+            // panic for to make dev easier
+            panic!(
                 "position {}, {} is out of bounds from the tree. It will not be added",
                 node.position.x, node.position.y
             );
         }
-        match &self.particle {
-            None => {
-                self.particle = Some(*node);
-                return;
-            }
-            Some(particle) => {
-                if particle.position.x >= self.center.x && particle.position.y >= self.center.y {
-                    self.build_new_trees();
-                    let old_particle = mem::replace(&mut self.particle, None).unwrap();
-                    self.nodes[0].borrow_mut().append_node(&old_particle);
-                } else if particle.position.x < self.center.x
-                    && particle.position.y >= self.center.y
-                {
-                    self.build_new_trees();
-                    let old_particle = mem::replace(&mut self.particle, None).unwrap();
-                    self.nodes[1].borrow_mut().append_node(&old_particle);
-                } else if particle.position.x < self.center.x && particle.position.y < self.center.y
-                {
-                    self.build_new_trees();
-                    let old_particle = mem::replace(&mut self.particle, None).unwrap();
-                    self.nodes[2].borrow_mut().append_node(&old_particle);
-                } else {
-                    self.build_new_trees();
-                    let old_particle = mem::replace(&mut self.particle, None).unwrap();
-                    self.nodes[3].borrow_mut().append_node(&old_particle);
+
+        if self.nodes.len() == 0 {
+            match &self.particle {
+                None => {
+                    self.particle = Some(*node);
+                    return;
+                }
+                Some(particle) => {
+                    if particle.position.x >= self.center.x && particle.position.y >= self.center.y {
+                        self.build_new_trees();
+                        let old_particle = mem::replace(&mut self.particle, None).unwrap();
+                        self.nodes[0].borrow_mut().append_node(&old_particle);
+                    } else if particle.position.x < self.center.x
+                        && particle.position.y >= self.center.y
+                    {
+                        self.build_new_trees();
+                        let old_particle = mem::replace(&mut self.particle, None).unwrap();
+                        self.nodes[1].borrow_mut().append_node(&old_particle);
+                    } else if particle.position.x < self.center.x && particle.position.y < self.center.y
+                    {
+                        self.build_new_trees();
+                        let old_particle = mem::replace(&mut self.particle, None).unwrap();
+                        self.nodes[2].borrow_mut().append_node(&old_particle);
+                    } else {
+                        self.build_new_trees();
+                        let old_particle = mem::replace(&mut self.particle, None).unwrap();
+                        self.nodes[3].borrow_mut().append_node(&old_particle);
+                    }
                 }
             }
         }
@@ -220,7 +237,7 @@ impl Tree {
     }
 
     // public facing function to update all points in the tree
-    pub fn update_units(&mut self, list_of_points: &mut Vec<Particle>, delta_time: &f32) {
+    pub fn calc_gravity_vector(&self, list_of_points: &mut Vec<Particle>, delta_time: &f32) {
         for point in list_of_points {
             match &self.particle {
                 // early return since this is only one object in the tree
@@ -234,7 +251,6 @@ impl Tree {
                     }
                 }
             }
-            // point.update_position(&delta_time);
         }
     }
 
@@ -459,7 +475,7 @@ mod tests {
     }
 
     #[test]
-    fn tree_update_units() {
+    fn tree_calc_gravity_vector() {
         let part1 = Particle {
             position: Vector { x: 1.0, y: 1.0 },
             velocity: Vector { x: 1.0, y: 1.0 },
@@ -492,7 +508,7 @@ mod tests {
         assert_eq!(list_of_points[1].position.x, -1.0);
         assert_eq!(list_of_points[1].position.y, -1.0);
 
-        tree.update_units(&mut list_of_points, &100.0);
+        tree.calc_gravity_vector(&mut list_of_points, &100.0);
 
         for point in &mut list_of_points {
             point.update_velocity(&0.01);

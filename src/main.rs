@@ -18,24 +18,25 @@ pub mod tree;
 
 fn update_all_positions(list_of_points: &mut Vec<tree::Particle>, delta_time: &f32) {
     let mut tree = tree::Tree::new();
+    
     // add to the tree. A copy will happen here which is required.
     // The tree needs to be constant as the list of points vector
     // is being updated
     for point in &*list_of_points {
         tree.append_node(&point);
     }
-
     // calculate the average mass for each node
     tree.build_average_mass();
 
     // big scary O(nlog(n)) apply forces calc time.
     // Traverse the tree and accumulate force vectors of gravity
-    tree.update_units(list_of_points, delta_time);
+    tree.calc_gravity_vector(list_of_points, delta_time);
 
     // really dump collision handler
     let mut collision_pairs = Vec::new();
 
-    // check for collisions the long way
+    // check for collisions the long way (use tree in future?)
+    //handle collisions - the dumb way
     for (i, point) in list_of_points.iter().enumerate() {
         for possible_collision in &*list_of_points{
             // we can't collide with ourselves
@@ -43,16 +44,22 @@ fn update_all_positions(list_of_points: &mut Vec<tree::Particle>, delta_time: &f
             // TODO fix: just checking position and not future position
             let points_distance = point.position.get_distance(&possible_collision.position);
             // currently not early returning for found collisions
-            if points_distance <= 40.0 {
-                collision_pairs.push(i);
-            }
-        }
-    }
+            if points_distance <= 42.0 {
+                let old_mag =   f32::sqrt(f32::powi(point.velocity.x, 2) + f32::powi(point.velocity.y, 2)) * 0.8;
+                let new_velocity_vec = tree::Vector {
+                    x: point.position.x - possible_collision.position.x,
+                    y: point.position.y - possible_collision.position.y,
+                }.normialize()
+                .multiple(&old_mag);
 
-    //handle collisions - the dumb way
-    for index in collision_pairs {
-        list_of_points[index].velocity.x = -list_of_points[index].velocity.x;
-        list_of_points[index].velocity.y = -list_of_points[index].velocity.y;
+                collision_pairs.push((i,new_velocity_vec));
+            }
+        }   
+    }
+    for (index, velocity) in collision_pairs {
+        list_of_points[index].velocity.x = velocity.x;
+        list_of_points[index].velocity.y = velocity.y
+
     }
 
     // now update position
@@ -65,8 +72,8 @@ fn update_all_positions(list_of_points: &mut Vec<tree::Particle>, delta_time: &f
 
 #[macroquad::main("Rusty orbit")]
 async fn main() {
-    let vec1 = tree::Vector { x: 100.0, y: 100.0 };
-    let vec2 = tree::Vector { x: 0.0, y: 0.0 };
+    let vec1 = tree::Vector { x: 50.0, y: -50.0 };
+    let vec2 = tree::Vector { x: 0.0, y: -2.0 };
     let part1 = tree::Particle {
         position: vec1,
         velocity: vec2,
@@ -76,9 +83,9 @@ async fn main() {
 
     let vec3 = tree::Vector {
         x: -100.0,
-        y: -100.0,
+        y: 100.0,
     };
-    let vec4 = tree::Vector { x: 0.0, y: 0.0 };
+    let vec4 = tree::Vector { x: 0.0, y: 2.0 };
     let part2 = tree::Particle {
         position: vec3,
         velocity: vec4,
@@ -86,8 +93,20 @@ async fn main() {
         g_vector: tree::Vector { x: 0.0, y: 0.0 },
     };
 
+    let vec5 = tree::Vector {
+        x: 100.0,
+        y: 0.0,
+    };
+    let vec6 = tree::Vector { x: 0.0, y: 2.0 };
+    let part3 = tree::Particle {
+        position: vec5,
+        velocity: vec6,
+        mass: 1000.0,
+        g_vector: tree::Vector { x: 0.0, y: 0.0 },
+    };
+
     // part1 and part2 are being copied here
-    let mut list_of_points = vec![part1, part2];
+    let mut list_of_points = vec![part1, part2, part3];
     // let mut current_time = Instant::now();
 
     loop {
@@ -103,7 +122,7 @@ async fn main() {
             draw_circle(
                 screen_width() / 2.0 + point.position.x,
                 screen_height() / 2.0 + point.position.y,
-                15.0,
+                30.0,
                 BLUE,
             );
         }
