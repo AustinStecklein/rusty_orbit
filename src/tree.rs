@@ -40,16 +40,15 @@ pub struct Particle {
     pub position: Vector,
     pub velocity: Vector,
     pub mass: f32,
-    pub g_vector: Vector
+    pub g_vector: Vector,
 }
 
 impl Particle {
-    pub fn apply_force(&mut self, other: &Particle, delta_time: &f32) {
+    pub fn apply_force(&mut self, other: &Particle) {
         // first calculate the force of gravity that will other particle applies on this
         // particle
         let distance = self.position.get_distance(&other.position);
-        let g_force: f32 = (G * self.mass * other.mass)
-            / (f32::powi(distance, 2));
+        let g_force: f32 = (G * self.mass * other.mass) / (f32::powi(distance, 2));
         //create force vector
         let g_vector = Vector {
             x: other.position.x - self.position.x,
@@ -58,13 +57,13 @@ impl Particle {
         .normialize()
         .multiple(&g_force);
 
-        // second calculation to cancel out more and more the force of gravity as 
+        // second calculation to cancel out more and more the force of gravity as
         // the object get closer
         // if range greater than the collision range then it acts as a form of collision
-        // if the range is less than then the energy dissipation in the collision logic 
+        // if the range is less than then the energy dissipation in the collision logic
         // will mean the system balances
         // if the range and the collision factor are the same then items stick
-        // This feels better than the collision system as it 
+        // This feels better than the collision system as it
         static RANGE: f32 = 42.0;
         let p_force: f32 = f32::max(0.0, RANGE - distance) * g_force;
         let p_vector = Vector {
@@ -73,11 +72,9 @@ impl Particle {
         }
         .normialize()
         .multiple(&p_force);
-        self.g_vector.x  = self.g_vector.x + g_vector.x - p_vector.x;
-        self.g_vector.y  = self.g_vector.y + g_vector.y - p_vector.y;
-
+        self.g_vector.x = self.g_vector.x + g_vector.x - p_vector.x;
+        self.g_vector.y = self.g_vector.y + g_vector.y - p_vector.y;
     }
-
 
     pub fn update_position(&mut self, delta_time: &f32) {
         self.position.x = self.position.x + self.velocity.x * delta_time;
@@ -90,7 +87,6 @@ impl Particle {
         self.velocity.x = self.velocity.x + self.g_vector.x * delta_time;
         self.velocity.y = self.velocity.y + self.g_vector.y * delta_time;
     }
-
 }
 
 #[derive(Debug)]
@@ -133,7 +129,8 @@ impl Tree {
                     return;
                 }
                 Some(particle) => {
-                    if particle.position.x >= self.center.x && particle.position.y >= self.center.y {
+                    if particle.position.x >= self.center.x && particle.position.y >= self.center.y
+                    {
                         self.build_new_trees();
                         let old_particle = mem::replace(&mut self.particle, None).unwrap();
                         self.nodes[0].borrow_mut().append_node(&old_particle);
@@ -143,7 +140,8 @@ impl Tree {
                         self.build_new_trees();
                         let old_particle = mem::replace(&mut self.particle, None).unwrap();
                         self.nodes[1].borrow_mut().append_node(&old_particle);
-                    } else if particle.position.x < self.center.x && particle.position.y < self.center.y
+                    } else if particle.position.x < self.center.x
+                        && particle.position.y < self.center.y
                     {
                         self.build_new_trees();
                         let old_particle = mem::replace(&mut self.particle, None).unwrap();
@@ -278,7 +276,6 @@ impl Tree {
                         velocity: Vector { x: 0.0, y: 0.0 },
                         g_vector: Vector { x: 0.0, y: 0.0 },
                     },
-                    delta_time,
                 );
             }
             //early return as this the force has been applied
@@ -291,7 +288,7 @@ impl Tree {
                 if point.position.x != particle.position.x
                     || point.position.y != particle.position.y
                 {
-                    point.apply_force(particle, delta_time)
+                    point.apply_force(particle)
                 }
             }
             None => {
@@ -355,7 +352,7 @@ mod tests {
         };
 
         // large delta time to get some moment
-        part1.apply_force(&part2, &100.0);
+        part1.apply_force(&part2);
         part1.update_velocity(&100.0);
 
         // only particle 1 should have it's position change

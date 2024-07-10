@@ -13,12 +13,12 @@ pub mod tree;
 
 // current plan for mixing this two is that particles accumulate force
 // vectors. One being the gravitational force then collision force. (hoping to reuse
-// the tree for finding collision pairs). This should mean I don't need to 
+// the tree for finding collision pairs). This should mean I don't need to
 // cap forces as they will never get close enough to produce super large G forces
 
 fn update_all_positions(list_of_points: &mut Vec<tree::Particle>, delta_time: &f32) {
     let mut tree = tree::Tree::new();
-    
+
     // add to the tree. A copy will happen here which is required.
     // The tree needs to be constant as the list of points vector
     // is being updated
@@ -38,28 +38,32 @@ fn update_all_positions(list_of_points: &mut Vec<tree::Particle>, delta_time: &f
     // check for collisions the long way (use tree in future?)
     //handle collisions - the dumb way
     for (i, point) in list_of_points.iter().enumerate() {
-        for possible_collision in &*list_of_points{
+        for possible_collision in &*list_of_points {
             // we can't collide with ourselves
-            if std::ptr::eq(point, possible_collision) {continue;}
+            if std::ptr::eq(point, possible_collision) {
+                continue;
+            }
             // TODO fix: just checking position and not future position
             let points_distance = point.position.get_distance(&possible_collision.position);
             // currently not early returning for found collisions
             if points_distance <= 42.0 {
-                let old_mag: f32 =   f32::sqrt(f32::powi(point.velocity.x, 2) + f32::powi(point.velocity.y, 2)) *  0.8;
+                let old_mag: f32 =
+                    f32::sqrt(f32::powi(point.velocity.x, 2) + f32::powi(point.velocity.y, 2))
+                        * 0.8;
                 let new_velocity_vec = tree::Vector {
                     x: point.position.x - possible_collision.position.x,
                     y: point.position.y - possible_collision.position.y,
-                }.normialize()
+                }
+                .normialize()
                 .multiple(&old_mag);
 
-                collision_pairs.push((i,new_velocity_vec));
+                collision_pairs.push((i, new_velocity_vec));
             }
-        }   
+        }
     }
     for (index, velocity) in collision_pairs {
         list_of_points[index].velocity.x = velocity.x;
         list_of_points[index].velocity.y = velocity.y
-
     }
 
     // now update position
@@ -67,7 +71,6 @@ fn update_all_positions(list_of_points: &mut Vec<tree::Particle>, delta_time: &f
         point.update_velocity(&0.01);
         point.update_position(&0.01);
     }
-
 }
 
 #[macroquad::main("Rusty orbit")]
@@ -93,10 +96,7 @@ async fn main() {
         g_vector: tree::Vector { x: 0.0, y: 0.0 },
     };
 
-    let vec5 = tree::Vector {
-        x: 200.0,
-        y: 0.0,
-    };
+    let vec5 = tree::Vector { x: 200.0, y: 0.0 };
     let vec6 = tree::Vector { x: 0.0, y: 2.0 };
     let part3 = tree::Particle {
         position: vec5,
