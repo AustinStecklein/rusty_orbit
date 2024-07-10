@@ -49,13 +49,13 @@ fn update_all_positions(list_of_points: &mut Vec<tree::Particle>, delta_time: &f
             if points_distance <= 42.0 {
                 let old_mag: f32 =
                     f32::sqrt(f32::powi(point.velocity.x, 2) + f32::powi(point.velocity.y, 2))
-                        * 0.8;
+                        * (point.mass/ (point.mass + possible_collision.mass));
                 let new_velocity_vec = tree::Vector {
                     x: point.position.x - possible_collision.position.x,
                     y: point.position.y - possible_collision.position.y,
                 }
                 .normialize()
-                .multiple(&old_mag);
+                .multiple(&(old_mag * 0.8));
 
                 collision_pairs.push((i, new_velocity_vec));
             }
@@ -80,7 +80,7 @@ async fn main() {
     let part1 = tree::Particle {
         position: vec1,
         velocity: vec2,
-        mass: 1000.0,
+        mass: 500.0,
         g_vector: tree::Vector { x: 0.0, y: 0.0 },
     };
 

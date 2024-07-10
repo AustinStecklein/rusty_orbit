@@ -64,7 +64,14 @@ impl Particle {
         // will mean the system balances
         // if the range and the collision factor are the same then items stick
         // This feels better than the collision system as it
-        static RANGE: f32 = 42.0;
+        //
+        // Currently keeping the collision logic contained in the main file but I think a p
+        // force like this is the way. This doesn't feel like the end solution for two reasons
+        // The collision logic removes energy from the system during collisions which is most
+        // likely what also needs to be done here. Also this P force is just the g force multiplied
+        // by how close it is getting. This might be wrong as I want the density to increase as
+        // particles have more force pushing on them.
+        static RANGE: f32 = 35.0;
         let p_force: f32 = f32::max(0.0, RANGE - distance) * g_force;
         let p_vector = Vector {
             x: other.position.x - self.position.x,
