@@ -71,7 +71,7 @@ impl Particle {
         // likely what also needs to be done here. Also this P force is just the g force multiplied
         // by how close it is getting. This might be wrong as I want the density to increase as
         // particles have more force pushing on them.
-        static RANGE: f32 = 35.0;
+        static RANGE: f32 = 50.0;
         let p_force: f32 = f32::max(0.0, RANGE - distance) * g_force;
         let p_vector = Vector {
             x: other.position.x - self.position.x,
