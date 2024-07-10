@@ -3,7 +3,6 @@ use std::{cell::RefCell, rc::Rc};
 static G: f32 = 1.0; //6.6743E-11; // distance in meters and mass in kg
 static BOX_SIZE: f32 = 1000.0;
 static THETA: f32 = 0.5;
-static MAX_FORCE: f32 = 100.0;
 
 #[derive(Debug, Copy, Clone)]
 pub struct Vector {
@@ -49,11 +48,8 @@ impl Particle {
         // first calculate the force of gravity that will other particle applies on this
         // particle
         let distance = self.position.get_distance(&other.position);
-        let mut g_force: f32 = (G * self.mass * other.mass)
+        let g_force: f32 = (G * self.mass * other.mass)
             / (f32::powi(distance, 2));
-        // if g_force > MAX_FORCE {
-        //     g_force = 0.0;
-        // }
         //create force vector
         let g_vector = Vector {
             x: other.position.x - self.position.x,
@@ -62,17 +58,23 @@ impl Particle {
         .normialize()
         .multiple(&g_force);
 
-        //second calculate the strong nuclear force or the force generated as particles want to be 
-        //separated
-        // let p_force: f32 = f32::max(0.0, 30.0 - distance) * 15.0;
-        // let p_vector = Vector {
-        //     x: other.position.x - self.position.x,
-        //     y: other.position.y - self.position.y,
-        // }
-        // .normialize()
-        // .multiple(&p_force);
-        self.g_vector.x  = self.g_vector.x + g_vector.x;// - p_vector.x;
-        self.g_vector.y  = self.g_vector.y + g_vector.y;// - p_vector.y;
+        // second calculation to cancel out more and more the force of gravity as 
+        // the object get closer
+        // if range greater than the collision range then it acts as a form of collision
+        // if the range is less than then the energy dissipation in the collision logic 
+        // will mean the system balances
+        // if the range and the collision factor are the same then items stick
+        // This feels better than the collision system as it 
+        static RANGE: f32 = 42.0;
+        let p_force: f32 = f32::max(0.0, RANGE - distance) * g_force;
+        let p_vector = Vector {
+            x: other.position.x - self.position.x,
+            y: other.position.y - self.position.y,
+        }
+        .normialize()
+        .multiple(&p_force);
+        self.g_vector.x  = self.g_vector.x + g_vector.x - p_vector.x;
+        self.g_vector.y  = self.g_vector.y + g_vector.y - p_vector.y;
 
     }
 
