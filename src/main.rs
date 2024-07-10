@@ -1,8 +1,9 @@
 use std::vec;
 
-use macroquad::prelude::*;
+use macroquad::{prelude::*, rand};
 // use std::time::Instant;
 pub mod tree;
+
 
 // current problem
 // the tree and the display are in a stablish state yet collisions
@@ -108,6 +109,17 @@ async fn main() {
     // part1 and part2 are being copied here
     let mut list_of_points = vec![part1, part2, part3];
     // let mut current_time = Instant::now();
+    rand::srand(1231234);
+    // add in random particles
+    for _i in 1..=20 {
+        list_of_points.push(tree::Particle{
+            position: tree::Vector {x: rand::gen_range(-250, 250) as f32, y:rand::gen_range(-250, 250) as f32},
+            velocity: tree::Vector {x:0.0, y:0.0},
+            mass: 100.0,
+            g_vector: tree::Vector { x: 0.0, y: 0.0 },
+        })
+    }
+
 
     loop {
         //physics update
