@@ -1,9 +1,8 @@
-use std::vec;
+use std::{f32::consts::PI, vec};
 
-use macroquad::{prelude::*, rand};
+use macroquad::prelude::*;
 // use std::time::Instant;
 pub mod tree;
-
 
 // current problem
 // the tree and the display are in a stablish state yet collisions
@@ -33,40 +32,6 @@ fn update_all_positions(list_of_points: &mut Vec<tree::Particle>, delta_time: &f
     // Traverse the tree and accumulate force vectors of gravity
     tree.calc_gravity_vector(list_of_points, delta_time);
 
-    // really dump collision handler
-    let mut collision_pairs = Vec::new();
-
-    // check for collisions the long way (use tree in future?)
-    //handle collisions - the dumb way
-    for (i, point) in list_of_points.iter().enumerate() {
-        for possible_collision in &*list_of_points {
-            // we can't collide with ourselves
-            if std::ptr::eq(point, possible_collision) {
-                continue;
-            }
-            // TODO fix: just checking position and not future position
-            let points_distance = point.position.get_distance(&possible_collision.position);
-            // currently not early returning for found collisions
-            if points_distance <= 42.0 {
-                let old_mag: f32 =
-                    f32::sqrt(f32::powi(point.velocity.x, 2) + f32::powi(point.velocity.y, 2))
-                        * (possible_collision.mass / (point.mass + possible_collision.mass));
-                let new_velocity_vec = tree::Vector {
-                    x: point.position.x - possible_collision.position.x,
-                    y: point.position.y - possible_collision.position.y,
-                }
-                .normialize()
-                .multiple(&(old_mag * 0.8));
-
-                collision_pairs.push((i, new_velocity_vec));
-            }
-        }
-    }
-    for (index, velocity) in collision_pairs {
-        list_of_points[index].velocity.x = velocity.x;
-        list_of_points[index].velocity.y = velocity.y
-    }
-
     // now update position
     for point in list_of_points {
         point.update_velocity(&0.01);
@@ -74,52 +39,83 @@ fn update_all_positions(list_of_points: &mut Vec<tree::Particle>, delta_time: &f
     }
 }
 
-#[macroquad::main("Rusty orbit")]
-async fn main() {
-    let vec1 = tree::Vector { x: 50.0, y: -50.0 };
-    let vec2 = tree::Vector { x: 0.0, y: -2.0 };
-    let part1 = tree::Particle {
-        position: vec1,
-        velocity: vec2,
-        mass: 500.0,
-        g_vector: tree::Vector { x: 0.0, y: 0.0 },
-    };
+fn get_number_particles(layer: &i32) -> i32 {
+    if layer == &1 {
+        return 1;
+    }
+    let large_diameter = 60 * layer + 60;
+    (PI / (f32::asin(60.0 / large_diameter as f32))) as i32
+}
 
-    let vec3 = tree::Vector {
-        x: -100.0,
-        y: 100.0,
-    };
-    let vec4 = tree::Vector { x: 0.0, y: 2.0 };
-    let part2 = tree::Particle {
-        position: vec3,
-        velocity: vec4,
-        mass: 10.0,
-        g_vector: tree::Vector { x: 0.0, y: 0.0 },
-    };
-
-    let vec5 = tree::Vector { x: 200.0, y: 0.0 };
-    let vec6 = tree::Vector { x: 0.0, y: 2.0 };
-    let part3 = tree::Particle {
-        position: vec5,
-        velocity: vec6,
-        mass: 1000.0,
-        g_vector: tree::Vector { x: 0.0, y: 0.0 },
-    };
-
-    // part1 and part2 are being copied here
-    let mut list_of_points = vec![part1, part2, part3];
-    // let mut current_time = Instant::now();
-    rand::srand(1231234);
-    // add in random particles
-    for _i in 1..=20 {
-        list_of_points.push(tree::Particle{
-            position: tree::Vector {x: rand::gen_range(-250, 250) as f32, y:rand::gen_range(-250, 250) as f32},
-            velocity: tree::Vector {x:0.0, y:0.0},
-            mass: 100.0,
-            g_vector: tree::Vector { x: 0.0, y: 0.0 },
-        })
+fn map_to_position(layer: &i32, delta_theta: &f32, center: &tree::Vector) -> tree::Vector {
+    if *layer == 1 {
+        return *center;
     }
 
+    let large_radius = 30 * layer + 30;
+    return tree::Vector {
+        x: center.x + (large_radius as f32 * f32::cos(*delta_theta)),
+        y: center.y + (large_radius as f32 * f32::sin(*delta_theta)),
+    };
+}
+
+fn build_mass(
+    num_particles: &i32,
+    center: &tree::Vector,
+    velocity: &tree::Vector,
+) -> Vec<tree::Particle> {
+    let mut layer = 1;
+    let mut num_placed = 0;
+    let mut mass: Vec<tree::Particle> = vec![];
+
+    'outer: loop {
+        let current_layer_num = get_number_particles(&layer);
+        for i in 0..current_layer_num {
+            let delta_theta = (360 as f32 / current_layer_num as f32) * i as f32;
+            let position = map_to_position(&layer, &delta_theta, center);
+            // let velocity = tree::Vector{
+            //     x: - center.y - position.y,
+            //     y: center.x - position.x
+            // }.normialize().multiple(&10.0);
+            // // add particle to mass
+            // let velocity = tree::Vector {
+            //     x: position.x - ((center.x - position.x) * (1.0 / normal_mag)),
+            //     y: position.y + ((center.y - position.y) * (1.0 / normal_mag)),
+            // };
+
+            mass.push(tree::Particle {
+                position,
+                velocity: *velocity,
+                mass: 100.0,
+                g_vector: tree::Vector { x: 0.0, y: 0.0 },
+            });
+            num_placed += 1;
+            // if we are done then exit
+            if num_placed == *num_particles {
+                break 'outer;
+            }
+        }
+        layer += 1;
+    }
+    return mass;
+}
+
+#[macroquad::main("Rusty orbit")]
+async fn main() {
+    // build two masses here that have opposite positions and velocities
+    // This allows a demo of the two counter rotating
+    let mut list_of_points = build_mass(
+        &5,
+        &tree::Vector { x: -160.0, y: 0.0 },
+        &tree::Vector { x: 0.0, y: -10.0 },
+    );
+    let mut another_list = build_mass(
+        &5,
+        &tree::Vector { x: 160.0, y: 0.0 },
+        &tree::Vector { x: 0.0, y: 10.0 },
+    );
+
+    list_of_points.append(&mut another_list);
 
     loop {
         //physics update

@@ -2,7 +2,7 @@ use std::mem;
 use std::{cell::RefCell, rc::Rc};
 static G: f32 = 1.0; //6.6743E-11; // distance in meters and mass in kg
 static BOX_SIZE: f32 = 1000.0;
-static THETA: f32 = 0.5;
+static THETA: f32 = 0.05;
 
 #[derive(Debug, Copy, Clone)]
 pub struct Vector {
@@ -123,10 +123,11 @@ impl Tree {
     pub fn append_node(&mut self, node: &Particle) {
         if f32::abs(node.position.x) > BOX_SIZE || f32::abs(node.position.y) > BOX_SIZE {
             // panic for to make dev easier
-            panic!(
-                "position {}, {} is out of bounds from the tree. It will not be added",
-                node.position.x, node.position.y
-            );
+            // println!(
+            //     "position {}, {} is out of bounds from the tree. It will not be added",
+            //     node.position.x, node.position.y
+            // );
+            return;
         }
 
         if self.nodes.len() == 0 {
@@ -273,17 +274,15 @@ impl Tree {
         // the center and of the quad
         if BOX_SIZE / self.center.get_distance(&point.position) < THETA {
             if point.position.x != self.center.x && point.position.y != self.center.y {
-                point.apply_force(
-                    &Particle {
-                        mass: self.avg_mass,
-                        position: Vector {
-                            x: self.center.x,
-                            y: self.center.y,
-                        },
-                        velocity: Vector { x: 0.0, y: 0.0 },
-                        g_vector: Vector { x: 0.0, y: 0.0 },
+                point.apply_force(&Particle {
+                    mass: self.avg_mass,
+                    position: Vector {
+                        x: self.center.x,
+                        y: self.center.y,
                     },
-                );
+                    velocity: Vector { x: 0.0, y: 0.0 },
+                    g_vector: Vector { x: 0.0, y: 0.0 },
+                });
             }
             //early return as this the force has been applied
             return;
